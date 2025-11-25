@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enumeraciones
+enum RolUsuario {
+  ADMIN
+  CONTADOR
+}
+
+enum TipoRegistro {
+  COMPRA
+  VENTA
+}
+
+enum OrigenComprobante {
+  MANUAL
+  IMPORTADO
+  API
+}
+
+enum TipoImpuesto {
+  IVA
+  IRP
+}
+
+// Modelo Usuario - Contadores del estudio
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  nombre    String
+  rol       RolUsuario
+  password  String
+  clientes  Cliente[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Modelo Configuracion - Datos de la landing page
+model Configuracion {
+  id             Int     @id @default(1)
+  telefono       String?
+  emailContacto  String?
+  urlLinkedIn    String?
+  direccion      String?
+  horarioAtencion String?
+}
+
+// Modelo Cliente
+model Cliente {
+  id                  Int            @id @default(autoincrement())
+  ruc                 String         @unique
+  razonSocial         String
+  actividadEconomica  String?
+  impuestos           TipoImpuesto[]
+  digitoVerificador   Int
+  contadorId          Int
+  contador            Usuario        @relation(fields: [contadorId], references: [id])
+  comprobantes        Comprobante[]
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
+
+// Modelo Comprobante - Facturas y documentos
+model Comprobante {
+  id                    Int                   @id @default(autoincrement())
+  timbrado              String
+  numeroComprobante     String
+  fecha                 DateTime
+  tipoRegistro          TipoRegistro
+  origenComprobante     OrigenComprobante
+  rucEmisor             String
+  razonSocialEmisor     String
+  rucReceptor           String
+  razonSocialReceptor   String
+  montoTotal            Decimal               @db.Decimal(10, 2)
+  montoGravado10        Decimal               @db.Decimal(10, 2)
+  montoGravado5         Decimal               @db.Decimal(10, 2)
+  montoExento           Decimal               @db.Decimal(10, 2)
+  montoIVA10            Decimal               @db.Decimal(10, 2)
+  montoIVA5             Decimal               @db.Decimal(10, 2)
+  clienteId             Int
+  cliente               Cliente               @relation(fields: [clienteId], references: [id])
+  imputaciones          ImputacionContable[]
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+}
+
+// Modelo ImputacionContable - Asignaciones de impuestos
+model ImputacionContable {
+  id              Int            @id @default(autoincrement())
+  comprobanteId   Int
+  comprobante     Comprobante    @relation(fields: [comprobanteId], references: [id])
+  impuestoTipo    TipoImpuesto
+  montoImputable  Decimal        @db.Decimal(10, 2)
+  periodo         String         // Formato: YYYY-MM
+  createdAt       DateTime       @default(now())
+}
