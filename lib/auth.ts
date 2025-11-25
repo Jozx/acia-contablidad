@@ -16,10 +16,10 @@ export function generateToken(payload: object): string {
     return jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
 }
 
-export function verifyToken(token: string): any {
+export function verifyToken(token: string): string | object | null {
     try {
         return jwt.verify(token, JWT_SECRET);
-    } catch (error) {
+    } catch {
         return null;
     }
 }

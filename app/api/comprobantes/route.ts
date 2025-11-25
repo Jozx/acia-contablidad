@@ -32,8 +32,20 @@ export async function POST(request: Request) {
             }
         }
 
+        // Validar que si hay montos gravados, existan imputaciones
+        // Si es solo exentas (IVA 10 y 5 son 0), no es obligatorio tener imputaciones
+        const hasGravado = (Number(comprobanteData.montoGravado10) > 0) || (Number(comprobanteData.montoGravado5) > 0);
+
+        if (hasGravado && imputacionesData.length === 0) {
+            return NextResponse.json(
+                { error: 'El comprobante tiene montos gravados pero no se han especificado imputaciones' },
+                { status: 400 }
+            );
+        }
+
         // 2. Transacción de Prisma
-        const result = await prisma.$transaction(async (tx) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const result = await prisma.$transaction(async (tx: any) => {
             // Crear el Comprobante
             const comprobante = await tx.comprobante.create({
                 data: {
@@ -58,7 +70,7 @@ export async function POST(request: Request) {
 
             // Preparar datos para createMany de Imputaciones
             if (imputacionesData.length > 0) {
-                const imputacionesToCreate = imputacionesData.map((imp: any) => ({
+                const imputacionesToCreate = imputacionesData.map((imp: { impuestoTipo: string; montoImputable: number; periodo: string }) => ({
                     comprobanteId: comprobante.id,
                     impuestoTipo: imp.impuestoTipo as TipoImpuesto,
                     montoImputable: imp.montoImputable,
