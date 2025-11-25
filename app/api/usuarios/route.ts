@@ -1,16 +1,20 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { hashPassword } from '@/lib/auth';
+import { hashPassword, generateSecurePassword } from '@/lib/password';
 
-// GET - Listar todos los usuarios
+// GET - Listar todos los usuarios (excluir eliminados)
 export async function GET() {
     try {
         const usuarios = await prisma.usuario.findMany({
+            where: {
+                deletedAt: null,
+            },
             select: {
                 id: true,
                 email: true,
                 nombre: true,
                 rol: true,
+                activo: true,
                 createdAt: true,
                 updatedAt: true,
                 // No incluimos password por seguridad
@@ -30,24 +34,24 @@ export async function GET() {
     }
 }
 
-// POST - Crear nuevo usuario (Contador)
+// POST - Crear nuevo usuario con contraseña temporal
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { email, nombre, rol, password } = body;
+        const { email, nombre, rol } = body;
 
         // Validaciones básicas
-        if (!email || !nombre || !rol || !password) {
+        if (!email || !nombre || !rol) {
             return NextResponse.json(
-                { error: 'Todos los campos son requeridos' },
+                { error: 'Email, nombre y rol son requeridos' },
                 { status: 400 }
             );
         }
 
         // Verificar que el rol sea válido
-        if (rol !== 'ADMIN' && rol !== 'CONTADOR') {
+        if (rol !== 'ADMIN' && rol !== 'CONTADOR' && rol !== 'CONTADOR_GENERAL') {
             return NextResponse.json(
-                { error: 'Rol inválido. Debe ser ADMIN o CONTADOR' },
+                { error: 'Rol inválido' },
                 { status: 400 }
             );
         }
@@ -64,8 +68,9 @@ export async function POST(request: Request) {
             );
         }
 
-        // Hash password
-        const hashedPassword = await hashPassword(password);
+        // Generar contraseña temporal segura
+        const temporaryPassword = generateSecurePassword();
+        const hashedPassword = await hashPassword(temporaryPassword);
 
         // Crear usuario
         const usuario = await prisma.usuario.create({
@@ -74,23 +79,28 @@ export async function POST(request: Request) {
                 nombre,
                 rol,
                 password: hashedPassword,
+                activo: true,
             },
             select: {
                 id: true,
                 email: true,
                 nombre: true,
                 rol: true,
+                activo: true,
                 createdAt: true,
                 updatedAt: true,
             },
         });
 
-        return NextResponse.json(usuario, { status: 201 });
+        // Devolver usuario y contraseña temporal (solo esta vez)
+        return NextResponse.json(
+            { ...usuario, temporaryPassword },
+            { status: 201 }
+        );
     } catch (error) {
         console.error('Error creating usuario:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
         return NextResponse.json(
-            { error: 'Error al crear usuario', details: error instanceof Error ? error.message : 'Unknown error' },
+            { error: 'Error al crear usuario' },
             { status: 500 }
         );
     }

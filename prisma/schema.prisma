@@ -11,6 +11,7 @@ datasource db {
 enum RolUsuario {
   ADMIN
   CONTADOR
+  CONTADOR_GENERAL
 }
 
 enum TipoRegistro {
@@ -36,6 +37,8 @@ model Usuario {
   nombre    String
   rol       RolUsuario
   password  String
+  activo    Boolean  @default(true)
+  deletedAt DateTime?
   clientes  Cliente[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
