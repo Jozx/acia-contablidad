@@ -58,7 +58,8 @@ model Cliente {
   razonSocial         String
   actividadEconomica  String?
   impuestos           TipoImpuesto[]
-  digitoVerificador   Int
+  digitoVencimiento   Int            // Último dígito del número RUC (para calcular vencimientos)
+  digitoVerificador   Int            // Dígito verificador real (después del guion)
   contadorId          Int
   contador            Usuario        @relation(fields: [contadorId], references: [id])
   comprobantes        Comprobante[]

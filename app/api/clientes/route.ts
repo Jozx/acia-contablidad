@@ -2,30 +2,33 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 /**
- * Función utilitaria para extraer el dígito verificador del RUC
- * Ejemplo: "1.234.567-1" -> 7 (último dígito antes del guion)
+ * Función utilitaria para extraer los dígitos del RUC
+ * Ejemplo: "80001234-5" -> { digitoVencimiento: 4, digitoVerificador: 5 }
  * @param ruc - RUC en formato paraguayo
- * @returns Dígito verificador
+ * @returns Objeto con digitoVencimiento y digitoVerificador
  */
-function getDigitoVerificador(ruc: string): number {
+function extractDigitosRUC(ruc: string): { digitoVencimiento: number; digitoVerificador: number } {
     // Remover puntos y espacios
     const rucLimpio = ruc.replace(/[.\s]/g, '');
 
-    // Buscar el último dígito antes del guion
+    // Dividir por el guion
     const partes = rucLimpio.split('-');
     if (partes.length < 2) {
         throw new Error('Formato de RUC inválido. Debe incluir guion (-)');
     }
 
-    // Obtener el último dígito de la primera parte (antes del guion)
+    // Obtener el último dígito de la primera parte (número del RUC)
     const numeroBase = partes[0];
-    const digitoVerificador = parseInt(numeroBase.charAt(numeroBase.length - 1));
+    const digitoVencimiento = parseInt(numeroBase.charAt(numeroBase.length - 1));
 
-    if (isNaN(digitoVerificador)) {
-        throw new Error('No se pudo extraer el dígito verificador del RUC');
+    // Obtener el dígito verificador (después del guion)
+    const digitoVerificador = parseInt(partes[1]);
+
+    if (isNaN(digitoVencimiento) || isNaN(digitoVerificador)) {
+        throw new Error('No se pudieron extraer los dígitos del RUC');
     }
 
-    return digitoVerificador;
+    return { digitoVencimiento, digitoVerificador };
 }
 
 // GET - Listar todos los clientes con su contador asignado
@@ -95,10 +98,13 @@ export async function POST(request: Request) {
             );
         }
 
-        // Calcular dígito verificador
+        // Extraer dígitos del RUC
+        let digitoVencimiento: number;
         let digitoVerificador: number;
         try {
-            digitoVerificador = getDigitoVerificador(ruc);
+            const digitos = extractDigitosRUC(ruc);
+            digitoVencimiento = digitos.digitoVencimiento;
+            digitoVerificador = digitos.digitoVerificador;
         } catch (error) {
             return NextResponse.json(
                 { error: error instanceof Error ? error.message : 'Error al procesar el RUC' },
@@ -113,6 +119,7 @@ export async function POST(request: Request) {
                 razonSocial,
                 actividadEconomica: actividadEconomica || null,
                 impuestos: impuestos || [],
+                digitoVencimiento,
                 digitoVerificador,
                 contadorId,
             },
