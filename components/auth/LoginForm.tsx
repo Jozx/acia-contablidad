@@ -43,8 +43,13 @@ export default function LoginForm() {
                 rol: user.rol,
             });
 
-            // Redirect to dashboard
-            router.push('/dashboard/clientes');
+            // Redirect based on user role
+            if (user.rol === 'ADMIN') {
+                router.push('/dashboard/usuarios');
+            } else {
+                // CONTADOR and CONTADOR_GENERAL go to clientes
+                router.push('/dashboard/clientes');
+            }
         } catch (err) {
             setError('Error al iniciar sesión. Por favor, intenta nuevamente.');
             setLoading(false);

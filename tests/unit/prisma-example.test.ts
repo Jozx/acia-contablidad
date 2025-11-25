@@ -22,6 +22,8 @@ describe('Prisma Example Test', () => {
             email: 'test@example.com',
             password: 'password',
             rol: 'ADMIN' as RolUsuario,
+            activo: true,
+            deletedAt: null,
             createdAt: new Date(),
             updatedAt: new Date(),
         }

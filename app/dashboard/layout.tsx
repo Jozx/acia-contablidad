@@ -47,7 +47,10 @@ export default function DashboardLayout({
                     <div className="flex justify-between h-16">
                         <div className="flex">
                             <div className="flex-shrink-0 flex items-center">
-                                <Link href="/dashboard/clientes" className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                                <Link
+                                    href={userRole === 'ADMIN' ? '/dashboard/usuarios' : '/dashboard/clientes'}
+                                    className="text-xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent"
+                                >
                                     ACIA Dashboard
                                 </Link>
                             </div>
