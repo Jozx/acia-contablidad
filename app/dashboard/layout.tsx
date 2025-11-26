@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { getSession, clearSession } from '@/lib/auth.client';
 
@@ -11,6 +11,7 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const router = useRouter();
+    const pathname = usePathname();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userName, setUserName] = useState('');
     const [userRole, setUserRole] = useState('');
@@ -19,12 +20,26 @@ export default function DashboardLayout({
         const session = getSession();
         if (!session) {
             router.push('/login');
-        } else {
-            setIsAuthenticated(true);
-            setUserName(session.nombre);
-            setUserRole(session.rol);
+            return;
         }
-    }, [router]);
+
+        setIsAuthenticated(true);
+        setUserName(session.nombre);
+        setUserRole(session.rol);
+
+        // Role-based access control
+        if (session.rol === 'ADMIN') {
+            // Admin cannot access clients or contadores
+            if (pathname.startsWith('/dashboard/clientes') || pathname.startsWith('/dashboard/contadores')) {
+                router.push('/dashboard/usuarios');
+            }
+        } else if (session.rol === 'CONTADOR' || session.rol === 'CONTADOR_GENERAL') {
+            // Accountants cannot access usuarios
+            if (pathname.startsWith('/dashboard/usuarios')) {
+                router.push('/dashboard/clientes');
+            }
+        }
+    }, [router, pathname]);
 
     const handleLogout = () => {
         clearSession();
